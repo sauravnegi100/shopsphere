@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 
 // Handle the logic for registering a new user.
 const registerUser = async (req, res) => {
@@ -62,7 +63,58 @@ const registerUser = async (req, res) => {
   }
 };
 
-export { registerUser };
+// Handle the logic for Logging in a user.
+const loginUser = async (req, res) => {
+  try {
+    // Get the login credentials sent by the client.
+    const { email, password } = req.body || {};
+
+    // Check whether both email and password are provided.
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
+
+    // Find the user associated with the provided email.
+    const user = await User.findOne({ email });
+
+    // Stop the login process if no user exists with the provided email.
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    // Compare the password provided by the user with the hashed password stored in the database.
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    // Stop the login process if the provided password is incorrect.
+    if (!isPasswordValid) {
+      return res.status(401).json({
+        message: "Invalid email or password",
+      });
+    }
+
+    // Generate a JWT containing the user's ID. --> jwt.sign(payload, secret, options)
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    // Send a successful login response along with the JWT token.
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+    });
+  } catch (error) {
+    console.error("Login error : ", error.message);
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export { registerUser, loginUser };
 
 // Error Handling in Registration :
 // 400 Bad Request → Used when the client sends invalid or incomplete data.
