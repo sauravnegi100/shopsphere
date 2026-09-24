@@ -27,6 +27,12 @@ const userSchema = new mongoose.Schema(
       // enum Restricts the field to only the specified allowed values.
       default: "user",
     },
+
+    isActive: {
+      type: Boolean,
+      // New users are active by default.
+      default: true,
+    },
   },
   {
     timestamps: true,

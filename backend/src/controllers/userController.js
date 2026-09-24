@@ -96,6 +96,12 @@ const loginUser = async (req, res) => {
       });
     }
 
+    // Stop the login process if the user's account is inactive.
+    if (!user.isActive) {
+      return res.status(403).json({
+        message: "Account is inactive",
+      });
+    }
     // Generate a JWT containing the user's ID. --> jwt.sign(payload, secret, options)
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
@@ -114,7 +120,23 @@ const loginUser = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser };
+// Return the profile of the currently authenticated user.
+const getProfile = (req, res) => {
+  // Send the authenticated user's profile stored by the protect middleware.
+  return res.status(200).json({
+    user: req.user,
+  });
+};
+
+// Return a response for an authenticated admin user.
+const getAdminData = async (req, res) => {
+  // Send a response after the admin authorization check succeeds.
+  return res.status(200).json({
+    message: "Welcome Admin",
+  });
+};
+
+export { registerUser, loginUser, getProfile, getAdminData };
 
 // Error Handling in Registration :
 // 400 Bad Request → Used when the client sends invalid or incomplete data.

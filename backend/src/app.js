@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 
 const app = express();
 
@@ -13,6 +15,10 @@ app.use(cors());
 // Mount all user-related routes under the /api/users path.
 app.use("/api/users", userRoutes);
 // app.use() Express application mein middleware ya router ko register/mount karne ke liye use hota hai.
+
+app.use("/api/products", productRoutes);
+
+app.use("/api/categories", categoryRoutes);
 
 app.get("/", (req, res) => {
   res.send("ShopSphere API is running");
