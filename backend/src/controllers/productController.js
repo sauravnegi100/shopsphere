@@ -1,4 +1,5 @@
 import Product from "../models/Product.js";
+import Category from "../models/Category.js";
 
 // Create a new product.
 const createProduct = async (req, res) => {
@@ -57,9 +58,26 @@ const getProducts = async (req, res) => {
       };
     }
 
-    // Add a category filter when a category is provided.
+    // Get the IDs of all active categories.
+    const activeCategories = await Category.find({
+      isActive: true,
+    }).select("_id");
+
+    // Convert the active category documents into an array of ObjectIds.
+    const activeCategoryIds = activeCategories.map((category) => category._id);
+
+    // Only include products that belong to an active category.
+    filter.category = {
+      $in: activeCategoryIds,
+    };
+
+    // Apply the requested category filter if a category ID is provided.
     if (category) {
-      filter.category = category;
+      filter.category = {
+        $in: activeCategoryIds.filter(
+          (categoryId) => categoryId.toString() === category,
+        ),
+      };
     }
 
     // Add a minimum price condition when a valid minimum price is provided.
@@ -84,12 +102,15 @@ const getProducts = async (req, res) => {
     if (sort === "price_asc") {
       sortOption = { price: 1 };
     }
+
     if (sort === "price_desc") {
       sortOption = { price: -1 };
     }
+
     if (sort === "newest") {
       sortOption = { createdAt: -1 };
     }
+
     if (sort === "oldest") {
       sortOption = { createdAt: 1 };
     }
@@ -98,11 +119,16 @@ const getProducts = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch products that match the filter for the current page.
+    // Populate the category reference with the related category document.
     const products = await Product.find(filter)
+      .populate("category")
       .sort(sortOption)
       .skip(skip)
       .limit(limit);
-    // '.skip(skip)' Skips a specified number of documents before returning the results and '.limit(limit)' Limits the number of documents returned by the query.
+
+    // .populate("category"): Use the ObjectId to find the related Category document.
+    // .skip(skip) skips documents before the current page.
+    // .limit(limit) limits the number of documents returned.
 
     // Count only the products that match the filter.
     const totalProducts = await Product.countDocuments(filter);
@@ -131,8 +157,8 @@ const getProductById = async (req, res) => {
     // Get the product ID from the URL parameter.
     const { id } = req.params;
 
-    // Find the product using the MongoDB document ID.
-    const product = await Product.findById(id);
+    // Populate the category reference with the related category document.
+    const product = await Product.findById(id).populate("category");
 
     // Stop the request if no product exists with the provided ID.
     if (!product) {

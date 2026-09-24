@@ -19,9 +19,11 @@ const productSchema = new mongoose.Schema(
       min: 0,
     },
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
       required: true,
-      trim: true,
+      // ObjectId is MongoDB's identifier type used to uniquely identify documents.
+      // ref tells Mongoose which model an ObjectId refers to, allowing Mongoose to populate the referenced document later.
     },
     images: {
       type: [String],

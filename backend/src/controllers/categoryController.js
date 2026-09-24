@@ -121,4 +121,33 @@ const updateCategory = async (req, res) => {
   }
 };
 
-export { createCategory, getCategories, getCategoryById, updateCategory };
+// Deactivate a category by its ID instead of permanently deleting it.
+const deleteCategory = async (req, res) => {
+  try {
+    // Set the category as inactive using the ID provided in the URL parameter.
+    const category = await Category.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }, // Return the updated document after the update.
+    );
+
+    if (!category) {
+      return res.status(404).json({
+        message: "Category not found",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Category deactivated successfully",
+      category,
+    });
+  } catch (error) {
+    console.error("Delete category error: ", error.message);
+
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
+};
+
+export { createCategory, getCategories, getCategoryById, updateCategory, deleteCategory };

@@ -4,6 +4,7 @@ import {
   getCategories,
   getCategoryById,
   updateCategory,
+  deleteCategory,
 } from "../controllers/categoryController.js";
 import protect from "../middlewares/authMiddleware.js";
 import admin from "../middlewares/adminMiddleware.js";
@@ -25,4 +26,7 @@ router.get("/:id", getCategoryById);
 // Update a category by its ID.
 // Only authenticated admin users can update categories.
 router.put("/:id", protect, admin, updateCategory);
+
+// Deactivate a category by its ID.
+router.delete("/:id", protect, admin, deleteCategory);
 export default router;
