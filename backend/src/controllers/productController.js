@@ -2,10 +2,24 @@ import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 
 // Create a new product.
-const createProduct = async (req, res) => {
+const createProduct = async (req, res, next) => {
   try {
     // Get product data sent by the client from the request body.
     const { name, description, price, category, images, stock } = req.body;
+
+    // Check whether the selected category exists and is active.
+    // findOne() finds a category that matches the given conditions.
+    const categoryExists = await Category.findOne({
+      _id: category,
+      isActive: true,
+    });
+
+    // Stop the request if the category does not exist or is inactive.
+    if (!categoryExists) {
+      return res.status(404).json({
+        message: "Category not found or inactive",
+      });
+    }
 
     // Create a new Product document using the Mongoose model.
     // new Product() creates a document instance in memory; it is not saved to MongoDB yet.
@@ -27,16 +41,12 @@ const createProduct = async (req, res) => {
       product: savedProduct,
     });
   } catch (error) {
-    console.error("Create product error:", error.message);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
 // Get products with pagination, search, category filter, and price filter.
-const getProducts = async (req, res) => {
+const getProducts = async (req, res, next) => {
   try {
     // Get pagination and search values from the query parameters.
     const page = Number(req.query.page) || 1;
@@ -143,16 +153,12 @@ const getProducts = async (req, res) => {
       totalProducts,
     });
   } catch (error) {
-    console.error("Get product error:", error.message);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
 // Get a single product by its ID.
-const getProductById = async (req, res) => {
+const getProductById = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
     const { id } = req.params;
@@ -171,22 +177,31 @@ const getProductById = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.error("Get product error: ", error.message);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
 // Update an existing product by its ID.
-const updateProduct = async (req, res) => {
+const updateProduct = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
     const { id } = req.params;
 
     // Get the updated product data sent by the client.
     const { name, description, price, category, images, stock } = req.body;
+
+    // Check whether the selected category exists and is active.
+    const categoryExists = await Category.findOne({
+      _id: category,
+      isActive: true,
+    });
+
+    // Stop the request if the category does not exist or is inactive.
+    if (!categoryExists) {
+      return res.status(404).json({
+        message: "Category not found or inactive",
+      });
+    }
 
     // Find the product by ID and update the provided fields.
     // Flow: Product.findByIdAndUpdate(id, updateData, options)
@@ -218,16 +233,12 @@ const updateProduct = async (req, res) => {
       product: updatedProduct,
     });
   } catch (error) {
-    console.error("Update product error: ", error.message);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
 // Delete a product by its ID.
-const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
     const { id } = req.params;
@@ -246,11 +257,7 @@ const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (error) {
-    console.error("Delete product error: ", error.message);
-
-    return res.status(500).json({
-      message: "Server error",
-    });
+    next(error);
   }
 };
 
