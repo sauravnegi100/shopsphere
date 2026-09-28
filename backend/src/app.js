@@ -4,6 +4,7 @@ import userRoutes from "./routes/userRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import errorMiddleware from "./middlewares/errorMiddleware.js";
+import cartRoutes from "./routes/cartRoutes.js";
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use("/api/categories", categoryRoutes);
 
 // Handle errors from routes and controllers.
 app.use(errorMiddleware);
+
+app.use("/api/cart", cartRoutes);
 
 app.get("/", (req, res) => {
   res.send("ShopSphere API is running");
