@@ -5,6 +5,7 @@ import productRoutes from "./routes/productRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import errorMiddleware from "./middlewares/errorMiddleware.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
 
 const app = express();
 
@@ -15,20 +16,27 @@ app.use(express.json());
 app.use(cors());
 
 // Mount all user-related routes under the /api/users path.
+// app.use() is used to register middleware or mount routers at a specific path in an Express application.
 app.use("/api/users", userRoutes);
-// app.use() Express application mein middleware ya router ko register/mount karne ke liye use hota hai.
 
+// Mount all product-related routes under the /api/products path.
 app.use("/api/products", productRoutes);
 
+// Mount all category-related routes under the /api/categories path.
 app.use("/api/categories", categoryRoutes);
 
-// Handle errors from routes and controllers.
-app.use(errorMiddleware);
-
+// Mount all cart-related routes under the /api/cart path.
 app.use("/api/cart", cartRoutes);
 
+// Mount all wishlist-related routes under the /api/wishlist path.
+app.use("/api/wishlist", wishlistRoutes);
+
+// Basic route to confirm that the ShopSphere API is running.
 app.get("/", (req, res) => {
   res.send("ShopSphere API is running");
 });
+
+// Handle errors from routes and controllers.
+app.use(errorMiddleware);
 
 export default app;
