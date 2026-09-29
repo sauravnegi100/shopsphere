@@ -6,6 +6,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import errorMiddleware from "./middlewares/errorMiddleware.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
+import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();
 
@@ -30,6 +31,9 @@ app.use("/api/cart", cartRoutes);
 
 // Mount all wishlist-related routes under the /api/wishlist path.
 app.use("/api/wishlist", wishlistRoutes);
+
+// Mount all order-related routes under the /api/orders path.
+app.use("/api/orders", orderRoutes);
 
 // Basic route to confirm that the ShopSphere API is running.
 app.get("/", (req, res) => {
