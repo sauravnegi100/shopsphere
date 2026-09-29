@@ -55,6 +55,13 @@ const createOrder = async (req, res, next) => {
         });
       }
 
+      // Stop if the product has been deactivated.
+      if (!product.isActive) {
+        return res.status(400).json({
+          message: `${product.name} is no longer available`,
+        });
+      }
+
       // Make sure enough stock is available.
       if (cartItem.quantity > product.stock) {
         return res.status(400).json({
