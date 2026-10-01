@@ -10,6 +10,10 @@ import {
 import protect from "../middlewares/authMiddleware.js";
 import admin from "../middlewares/adminMiddleware.js";
 import validateObjectId from "../middlewares/validateObjectId.js";
+import {
+  createRazorpayOrder,
+  verifyPayment,
+} from "../controllers/paymentController.js";
 
 const router = express.Router();
 
@@ -27,6 +31,12 @@ router.patch(
   validateObjectId,
   updateOrderStatus,
 );
+
+// Create a Razorpay payment order for an existing ShopSphere order.
+router.post("/:id/payment", protect, validateObjectId, createRazorpayOrder);
+
+// Verify the Razorpay payment signature and mark the order as paid.
+router.post("/:id/payment/verify", protect, validateObjectId, verifyPayment);
 
 // Get all orders belonging to the logged-in user.
 router.get("/", protect, getMyOrders);

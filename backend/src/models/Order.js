@@ -103,6 +103,14 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    razorpayOrderId: {
+      type: String,
+    },
+
+    razorpayPaymentId: {
+      type: String,
+    },
+
     // Track the current delivery/order state.
     orderStatus: {
       type: String,

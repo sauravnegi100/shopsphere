@@ -94,12 +94,6 @@ const createOrder = async (req, res, next) => {
     // Save the order to MongoDB.
     const savedOrder = await order.save();
 
-    // Clear the user's cart after the order has been created.
-    cart.items = [];
-
-    // Save the updated empty cart.
-    await cart.save();
-
     return res.status(201).json({
       message: "Order created successfully",
       order: savedOrder,
