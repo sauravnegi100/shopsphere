@@ -29,6 +29,13 @@ const createRazorpayOrder = async (req, res, next) => {
       });
     }
 
+    // Cancelled orders should not start a new payment.
+    if (order.orderStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Cancelled orders cannot be paid",
+      });
+    }
+
     // Razorpay expects the amount in the smallest currency unit.
     // For INR, 1 rupee = 100 paise.
     const amountInPaise = Math.round(order.totalAmount * 100);
@@ -65,6 +72,13 @@ const verifyPayment = async (req, res, next) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
       req.body;
 
+    // Check that all required payment details are provided.
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        message: "Missing payment verification details",
+      });
+    }
+
     // Find the ShopSphere order belonging to the currently logged-in user.
     const order = await Order.findOne({
       _id: id,
@@ -91,6 +105,13 @@ const verifyPayment = async (req, res, next) => {
       });
     }
 
+    // Cancelled orders should not be marked as paid.
+    if (order.orderStatus === "cancelled") {
+      return res.status(400).json({
+        message: "Cancelled orders cannot be paid",
+      });
+    }
+
     // Make sure the Razorpay order belongs to this ShopSphere order.
     if (order.razorpayOrderId !== razorpay_order_id) {
       return res.status(400).json({
@@ -104,10 +125,33 @@ const verifyPayment = async (req, res, next) => {
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    // Reject the payment if the received signature does not match our generated signature.
-    if (generatedSignature !== razorpay_signature) {
+    // Convert both signatures into buffers for secure comparison.
+    const expectedBuffer = Buffer.from(generatedSignature, "hex");
+    const receivedBuffer = Buffer.from(razorpay_signature, "hex");
+
+    // Reject the payment if the signature does not match.
+    if (
+      expectedBuffer.length !== receivedBuffer.length ||
+      !crypto.timingSafeEqual(expectedBuffer, receivedBuffer)
+    ) {
       return res.status(400).json({
         message: "Payment verification failed",
+      });
+    }
+
+    // Fetch the payment details directly from Razorpay.
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+
+    // Confirm that the payment belongs to this Razorpay order
+    // and that its amount, currency, and status are correct.
+    if (
+      payment.order_id !== razorpay_order_id ||
+      payment.amount !== Math.round(order.totalAmount * 100) ||
+      payment.currency !== "INR" ||
+      payment.status !== "captured"
+    ) {
+      return res.status(400).json({
+        message: "Payment is not captured or payment details are invalid",
       });
     }
 
@@ -141,13 +185,24 @@ const verifyPayment = async (req, res, next) => {
       }
     }
 
-    // Reduce stock only after all products pass the stock checks.
+    // Reduce stock only if enough stock is still available.
     for (const item of order.items) {
-      await Product.updateOne(
-        { _id: item.product },
-        { $inc: { stock: -item.quantity } },
+      const result = await Product.updateOne(
+        {
+          _id: item.product,
+          stock: { $gte: item.quantity },
+          isActive: true,
+        },
+        {
+          $inc: { stock: -item.quantity },
+        },
         { session },
       );
+
+      // Stop if the product is unavailable or stock has changed.
+      if (result.matchedCount !== 1) {
+        throw new Error("Product is unavailable or has insufficient stock");
+      }
     }
 
     // Mark the ShopSphere order as paid.
@@ -183,8 +238,8 @@ const verifyPayment = async (req, res, next) => {
       paymentStatus: order.paymentStatus,
     });
   } catch (error) {
-    // Undo all database changes if any transaction step fails.
-    if (session) {
+    // Undo database changes only if the transaction is still active.
+    if (session?.inTransaction()) {
       await session.abortTransaction();
     }
 
@@ -192,7 +247,7 @@ const verifyPayment = async (req, res, next) => {
   } finally {
     // Always release the MongoDB session after the transaction finishes.
     if (session) {
-      session.endSession();
+      await session.endSession();
     }
   }
 };

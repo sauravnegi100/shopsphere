@@ -1,9 +1,9 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
-const Login = () => <h1>Login Page</h1>;
-const Register = () => <h1>Register Page</h1>;
 const Products = () => <h1>Products Page</h1>;
 const Cart = () => <h1>Cart Page</h1>;
 

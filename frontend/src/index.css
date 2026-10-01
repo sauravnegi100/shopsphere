@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* Light theme */
 :root {
   color-scheme: light;
   --background: #f8fafc;
@@ -10,6 +11,7 @@
   --primary: #4f46e5;
 }
 
+/* Dark theme */
 [data-theme="dark"] {
   color-scheme: dark;
   --background: #0f172a;
@@ -20,6 +22,7 @@
   --primary: #818cf8;
 }
 
+/* Expose theme colors as Tailwind utilities */
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -32,4 +35,5 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
+  transition: background-color 0.2s ease, color 0.2s ease;
 }

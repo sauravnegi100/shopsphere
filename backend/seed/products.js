@@ -27,6 +27,24 @@ const seedProducts = async () => {
       slug: "accessories",
     });
 
+    const categories = {
+      electronics: await Category.findOne({ slug: "electronics-gadgets" }),
+      footwear: await Category.findOne({ slug: "footwear" }),
+      clothing: await Category.findOne({ slug: "clothing" }),
+      accessories: await Category.findOne({ slug: "accessories" }),
+    };
+
+    // Stop seeding if any required category is missing.
+    const missingCategories = Object.entries(categories)
+      .filter(([, category]) => !category)
+      .map(([name]) => name);
+
+    if (missingCategories.length > 0) {
+      throw new Error(
+        `Missing categories: ${missingCategories.join(", ")}. Create them before seeding.`,
+      );
+    }
+
     const products = [
       {
         name: "Wireless Headphones",
@@ -123,11 +141,14 @@ const seedProducts = async () => {
       },
     ];
 
-    // Remove existing products so the seed data does not create duplicates.
-    await Product.deleteMany();
-
-    // Insert all sample products into the Product collection.
-    await Product.insertMany(products);
+    // Update matching sample products or insert them if they do not exist.
+    for (const product of products) {
+      await Product.updateOne(
+        { name: product.name },
+        { $set: product },
+        { upsert: true, runValidators: true },
+      );
+    }
 
     console.log("Products seeded successfully");
 
