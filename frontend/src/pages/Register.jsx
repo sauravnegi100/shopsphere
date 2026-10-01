@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { registerUser } from "../services/authService.js";
 
 const Register = () => {
@@ -16,7 +17,6 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setFormData({
@@ -27,11 +27,10 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
     // Check that both password fields match.
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
@@ -39,15 +38,20 @@ const Register = () => {
 
     try {
       // Do not send confirmPassword to the backend.
-      const { confirmPassword, ...userData } = formData;
-
+      const userData = {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      };
+      
       await registerUser(userData);
 
+      // Redirect to login and display a success toast there.
       navigate("/login", {
         state: { message: "Account created successfully. Please log in." },
       });
     } catch (err) {
-      setError(
+      toast.error(
         err.response?.data?.message || "Registration failed. Please try again.",
       );
     } finally {
@@ -175,12 +179,6 @@ const Register = () => {
             </button>
           </div>
         </div>
-
-        {error && (
-          <p role="alert" className="text-sm text-red-500">
-            {error}
-          </p>
-        )}
 
         <button
           type="submit"

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+import toast from "react-hot-toast";
 import { login } from "../store/slices/authSlice.js";
 import { loginUser } from "../services/authService.js";
 
@@ -17,9 +18,14 @@ const Login = () => {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
-  const successMessage = location.state?.message;
+  // Show registration success message once after redirecting to login.
+  useEffect(() => {
+    if (location.state?.message) {
+      toast.success(location.state.message);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   const handleChange = (e) => {
     setFormData({
@@ -30,7 +36,6 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -39,10 +44,12 @@ const Login = () => {
       // Store the JWT in Redux and localStorage.
       dispatch(login(data.token));
 
+      toast.success("Logged in successfully!");
+
       // Redirect to the home page after successful login.
       navigate("/", { replace: true });
     } catch (err) {
-      setError(
+      toast.error(
         err.response?.data?.message || "Login failed. Please try again.",
       );
     } finally {
@@ -67,15 +74,6 @@ const Login = () => {
             Login to your ShopSphere account
           </p>
         </div>
-
-        {successMessage && (
-          <p
-            role="status"
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-primary"
-          >
-            {successMessage}
-          </p>
-        )}
 
         <div>
           <label htmlFor="email" className={labelClass}>
@@ -122,12 +120,6 @@ const Login = () => {
             </button>
           </div>
         </div>
-
-        {error && (
-          <p role="alert" className="text-sm text-red-500">
-            {error}
-          </p>
-        )}
 
         <button
           type="submit"
