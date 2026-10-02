@@ -9,12 +9,13 @@ import {
 import protect from "../middlewares/authMiddleware.js";
 import admin from "../middlewares/adminMiddleware.js";
 import validateObjectId from "../middlewares/validateObjectId.js";
+import upload from "../middlewares/uploadMiddleware.js";
 
 const router = express.Router();
 
 // Create a new product.
 // Only authenticated admin users can create products.
-router.post("/", protect, admin, createProduct);
+router.post("/", protect, admin, upload.array("images", 5), createProduct);
 
 // Get all products.
 // Anyone can view products.

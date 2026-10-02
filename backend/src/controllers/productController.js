@@ -1,28 +1,35 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
+import uploadToCloudinary from "../utils/cloudinaryUpload.js";
 
 // Create a new product.
+
 const createProduct = async (req, res, next) => {
   try {
-    // Get product data sent by the client from the request body.
-    const { name, description, price, category, images, stock } = req.body;
+    const { name, description, price, category, stock } = req.body;
 
     // Check whether the selected category exists and is active.
-    // findOne() finds a category that matches the given conditions.
     const categoryExists = await Category.findOne({
       _id: category,
       isActive: true,
     });
 
-    // Stop the request if the category does not exist or is inactive.
     if (!categoryExists) {
       return res.status(404).json({
         message: "Category not found or inactive",
       });
     }
 
-    // Create a new Product document using the Mongoose model.
-    // new Product() creates a document instance in memory; it is not saved to MongoDB yet.
+    // Upload received images to Cloudinary.
+    const uploadedImages = req.files?.length
+      ? await Promise.all(
+          req.files.map((file) => uploadToCloudinary(file.buffer)),
+        )
+      : [];
+
+    // Store Cloudinary secure URLs in the product document.
+    const images = uploadedImages.map((image) => image.secure_url);
+
     const product = new Product({
       name,
       description,
@@ -32,8 +39,6 @@ const createProduct = async (req, res, next) => {
       stock,
     });
 
-    // Save the new product document to MongoDB.
-    // save() is an asynchronous database operation, so we use await.
     const savedProduct = await product.save();
 
     return res.status(201).json({
