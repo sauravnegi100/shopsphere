@@ -5,8 +5,48 @@ import { deleteFromCloudinary } from "../utils/cloudinaryDelete.js";
 
 // Create a new product.
 const createProduct = async (req, res, next) => {
+  // Track uploaded images so they can be deleted if product creation fails.
+  const uploadedImages = [];
+
   try {
-    const { name, description, price, category, stock } = req.body;
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+    const description =
+      typeof req.body.description === "string"
+        ? req.body.description.trim()
+        : "";
+    const category = req.body.category;
+    const price = Number(req.body.price);
+
+    // If stock is omitted, use the model's default value of 0.
+    const stock = req.body.stock === undefined ? 0 : Number(req.body.stock);
+
+    // Validate required text fields.
+    if (!name || !description || !category) {
+      return res.status(400).json({
+        message: "Name, description, and category are required",
+      });
+    }
+
+    // Validate price: it must be a positive number.
+    if (!Number.isFinite(price) || price <= 0) {
+      return res.status(400).json({
+        message: "Price must be a number greater than 0",
+      });
+    }
+
+    // Validate stock: it must be a whole number, zero or greater.
+    if (!Number.isInteger(stock) || stock < 0) {
+      return res.status(400).json({
+        message: "Stock must be a non-negative whole number",
+      });
+    }
+
+    // Validate category ID format (MongoDB ObjectId).
+    if (typeof category !== "string" || !/^[a-f\d]{24}$/i.test(category)) {
+      return res.status(400).json({
+        message: "Invalid category ID",
+      });
+    }
 
     // Check whether the selected category exists and is active.
     const categoryExists = await Category.findOne({
@@ -20,12 +60,13 @@ const createProduct = async (req, res, next) => {
       });
     }
 
-    // Upload received images to Cloudinary.
-    const uploadedImages = req.files?.length
-      ? await Promise.all(
-          req.files.map((file) => uploadToCloudinary(file.buffer)),
-        )
-      : [];
+    // Upload received images to Cloudinary one by one.
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const uploadedImage = await uploadToCloudinary(file.buffer);
+        uploadedImages.push(uploadedImage);
+      }
+    }
 
     // Store Cloudinary secure URLs in the product document.
     const images = uploadedImages.map((image) => image.secure_url);
@@ -46,6 +87,22 @@ const createProduct = async (req, res, next) => {
       product: savedProduct,
     });
   } catch (error) {
+    // Clean up any images uploaded before the creation failed.
+    if (uploadedImages.length > 0) {
+      const cleanupResults = await Promise.allSettled(
+        uploadedImages.map((image) => deleteFromCloudinary(image.secure_url)),
+      );
+
+      cleanupResults.forEach((result) => {
+        if (result.status === "rejected") {
+          console.error(
+            "Failed to clean up a newly uploaded Cloudinary image:",
+            result.reason,
+          );
+        }
+      });
+    }
+
     next(error);
   }
 };
@@ -53,22 +110,136 @@ const createProduct = async (req, res, next) => {
 // Get products with pagination, search, category filter, and price filter.
 const getProducts = async (req, res, next) => {
   try {
-    // Get pagination and search values from the query parameters.
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 10;
-    const search = req.query.search?.trim();
-    const category = req.query.category?.trim();
-    const minPrice = Number(req.query.minPrice);
-    const maxPrice = Number(req.query.maxPrice);
-    const sort = req.query.sort;
+    // Get query parameters.
+    const {
+      page: pageQuery,
+      limit: limitQuery,
+      search: searchQuery,
+      category: categoryQuery,
+      minPrice: minPriceQuery,
+      maxPrice: maxPriceQuery,
+      sort,
+    } = req.query;
+
+    // Validate pagination input types and empty values.
+    if (
+      (pageQuery !== undefined &&
+        (typeof pageQuery !== "string" || !pageQuery.trim())) ||
+      (limitQuery !== undefined &&
+        (typeof limitQuery !== "string" || !limitQuery.trim()))
+    ) {
+      return res.status(400).json({
+        message: "Page and limit must be valid positive integers",
+      });
+    }
+
+    const page = pageQuery === undefined ? 1 : Number(pageQuery);
+    const limit = limitQuery === undefined ? 10 : Number(limitQuery);
+
+    // Validate page and limit.
+    if (!Number.isInteger(page) || page < 1) {
+      return res.status(400).json({
+        message: "Page must be a positive integer",
+      });
+    }
+
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        message: "Limit must be an integer between 1 and 100",
+      });
+    }
+
+    // Validate search.
+    if (searchQuery !== undefined && typeof searchQuery !== "string") {
+      return res.status(400).json({
+        message: "Search must be a string",
+      });
+    }
+
+    const search = searchQuery?.trim();
+
+    // Limit search query length.
+    if (search && search.length > 100) {
+      return res.status(400).json({
+        message: "Search query cannot exceed 100 characters",
+      });
+    }
+
+    // Validate category ID if provided.
+    if (
+      categoryQuery !== undefined &&
+      (typeof categoryQuery !== "string" ||
+        !/^[a-f\d]{24}$/i.test(categoryQuery.trim()))
+    ) {
+      return res.status(400).json({
+        message: "Invalid category ID",
+      });
+    }
+
+    const category = categoryQuery?.trim();
+
+    // Validate minimum price if provided.
+    if (
+      minPriceQuery !== undefined &&
+      (typeof minPriceQuery !== "string" ||
+        !minPriceQuery.trim() ||
+        !Number.isFinite(Number(minPriceQuery)) ||
+        Number(minPriceQuery) < 0)
+    ) {
+      return res.status(400).json({
+        message: "minPrice must be a non-negative number",
+      });
+    }
+
+    // Validate maximum price if provided.
+    if (
+      maxPriceQuery !== undefined &&
+      (typeof maxPriceQuery !== "string" ||
+        !maxPriceQuery.trim() ||
+        !Number.isFinite(Number(maxPriceQuery)) ||
+        Number(maxPriceQuery) < 0)
+    ) {
+      return res.status(400).json({
+        message: "maxPrice must be a non-negative number",
+      });
+    }
+
+    const minPrice = minPriceQuery === undefined ? NaN : Number(minPriceQuery);
+    const maxPrice = maxPriceQuery === undefined ? NaN : Number(maxPriceQuery);
+
+    // Ensure minimum price does not exceed maximum price.
+    if (
+      !Number.isNaN(minPrice) &&
+      !Number.isNaN(maxPrice) &&
+      minPrice > maxPrice
+    ) {
+      return res.status(400).json({
+        message: "minPrice cannot be greater than maxPrice",
+      });
+    }
+
+    // Validate sorting option.
+    const allowedSortOptions = ["price_asc", "price_desc", "newest", "oldest"];
+
+    if (
+      sort !== undefined &&
+      (typeof sort !== "string" || !allowedSortOptions.includes(sort))
+    ) {
+      return res.status(400).json({
+        message: "Invalid sort option",
+      });
+    }
 
     // Start with an empty MongoDB filter.
     const filter = {};
 
     // Add a name search condition when a search query is provided.
     if (search) {
+      // Escape special regex characters so the search is treated as plain text.
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
       filter.name = {
-        $regex: search,
+        $regex: escapedSearch,
         $options: "i",
       };
     }
@@ -217,8 +388,90 @@ const updateProduct = async (req, res, next) => {
       }
     });
 
-    // Validate category only if a new category was provided.
-    if (updateData.category) {
+    // Validate name only if it was provided.
+    if (updateData.name !== undefined) {
+      if (typeof updateData.name !== "string" || !updateData.name.trim()) {
+        return res.status(400).json({
+          message: "Name must be a non-empty string",
+        });
+      }
+
+      updateData.name = updateData.name.trim();
+    }
+
+    // Validate description only if it was provided.
+    if (updateData.description !== undefined) {
+      if (
+        typeof updateData.description !== "string" ||
+        !updateData.description.trim()
+      ) {
+        return res.status(400).json({
+          message: "Description must be a non-empty string",
+        });
+      }
+
+      updateData.description = updateData.description.trim();
+    }
+
+    // Validate price only if it was provided.
+    if (updateData.price !== undefined) {
+      const rawPrice = updateData.price;
+
+      if (
+        (typeof rawPrice !== "string" && typeof rawPrice !== "number") ||
+        String(rawPrice).trim() === ""
+      ) {
+        return res.status(400).json({
+          message: "Price must be a number greater than 0",
+        });
+      }
+
+      const price = Number(rawPrice);
+
+      if (!Number.isFinite(price) || price <= 0) {
+        return res.status(400).json({
+          message: "Price must be a number greater than 0",
+        });
+      }
+
+      updateData.price = price;
+    }
+
+    // Validate stock only if it was provided.
+    if (updateData.stock !== undefined) {
+      const rawStock = updateData.stock;
+
+      if (
+        (typeof rawStock !== "string" && typeof rawStock !== "number") ||
+        String(rawStock).trim() === ""
+      ) {
+        return res.status(400).json({
+          message: "Stock must be a non-negative whole number",
+        });
+      }
+
+      const stock = Number(rawStock);
+
+      if (!Number.isInteger(stock) || stock < 0) {
+        return res.status(400).json({
+          message: "Stock must be a non-negative whole number",
+        });
+      }
+
+      updateData.stock = stock;
+    }
+
+    // Validate category only if it was provided.
+    if (updateData.category !== undefined) {
+      if (
+        typeof updateData.category !== "string" ||
+        !/^[a-f\d]{24}$/i.test(updateData.category)
+      ) {
+        return res.status(400).json({
+          message: "Invalid category ID",
+        });
+      }
+
       const categoryExists = await Category.findOne({
         _id: updateData.category,
         isActive: true,
@@ -289,21 +542,36 @@ const updateProduct = async (req, res, next) => {
   }
 };
 
-// Delete a product by its ID.
+// Delete a product and its Cloudinary images.
 const deleteProduct = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
     const { id } = req.params;
 
-    // Find the product by its ID and permanently remove it from the database.
-    const deletedProduct = await Product.findByIdAndDelete(id);
+    // Find the product before deleting it.
+    const product = await Product.findById(id);
 
-    // Stop the request if no product exists with the provided ID.
-    if (!deletedProduct) {
+    // Stop if no product exists with the provided ID.
+    if (!product) {
       return res.status(404).json({
         message: "Product not found",
       });
     }
+
+    // Delete the product from MongoDB first.
+    await Product.findByIdAndDelete(id);
+
+    // Delete the product's images from Cloudinary.
+    const deletionResults = await Promise.allSettled(
+      product.images.map((imageUrl) => deleteFromCloudinary(imageUrl)),
+    );
+
+    // Log any image deletion failures for later investigation.
+    deletionResults.forEach((result) => {
+      if (result.status === "rejected") {
+        console.error("Failed to delete a Cloudinary image:", result.reason);
+      }
+    });
 
     return res.status(200).json({
       message: "Product deleted successfully",
