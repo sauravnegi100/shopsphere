@@ -5,7 +5,38 @@ import Product from "../models/Product.js";
 const addToCart = async (req, res, next) => {
   try {
     // Get product ID and quantity from the request body.
-    const { productId, quantity = 1 } = req.body;
+    const { productId: rawProductId } = req.body;
+    const rawQuantity = req.body.quantity;
+
+    // Validate product ID format.
+    if (
+      typeof rawProductId !== "string" ||
+      !/^[a-f\d]{24}$/i.test(rawProductId)
+    ) {
+      return res.status(400).json({
+        message: "Valid product ID is required",
+      });
+    }
+
+    // Normalize product ID to lowercase.
+    const productId = rawProductId.toLowerCase();
+
+    // Use 1 as the default quantity if it was not provided.
+    const quantity = rawQuantity === undefined ? 1 : Number(rawQuantity);
+
+    // Validate quantity.
+    if (
+      (typeof rawQuantity !== "undefined" &&
+        typeof rawQuantity !== "number" &&
+        typeof rawQuantity !== "string") ||
+      (typeof rawQuantity === "string" && !rawQuantity.trim()) ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) {
+      return res.status(400).json({
+        message: "Quantity must be a positive integer",
+      });
+    }
 
     // Find the product in the database.
     const product = await Product.findById(productId);
@@ -21,13 +52,6 @@ const addToCart = async (req, res, next) => {
     if (!product.isActive) {
       return res.status(400).json({
         message: "Product is not available",
-      });
-    }
-
-    // Make sure the requested quantity is valid.
-    if (quantity < 1) {
-      return res.status(400).json({
-        message: "Quantity must be at least 1",
       });
     }
 
@@ -124,13 +148,35 @@ const getCart = async (req, res, next) => {
 const updateCartItem = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
-    const { productId } = req.params;
+    const { productId: rawProductId } = req.params;
+
+    // Make sure the product ID is a valid MongoDB ObjectId.
+    if (
+      typeof rawProductId !== "string" ||
+      !/^[a-f\d]{24}$/i.test(rawProductId)
+    ) {
+      return res.status(400).json({
+        message: "Valid product ID is required",
+      });
+    }
+
+    const productId = rawProductId.toLowerCase();
 
     // Get the new quantity from the request body.
-    const { quantity } = req.body;
+    const rawQuantity = req.body.quantity;
+
+    // Convert the quantity to a number.
+    const quantity =
+      typeof rawQuantity === "number" || typeof rawQuantity === "string"
+        ? Number(rawQuantity)
+        : NaN;
 
     // Make sure a valid quantity was provided.
-    if (!Number.isInteger(quantity) || quantity < 1) {
+    if (
+      (typeof rawQuantity === "string" && !rawQuantity.trim()) ||
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) {
       return res.status(400).json({
         message: "Quantity must be a positive integer",
       });
@@ -202,7 +248,19 @@ const updateCartItem = async (req, res, next) => {
 const removeCartItem = async (req, res, next) => {
   try {
     // Get the product ID from the URL parameter.
-    const { productId } = req.params;
+    const { productId: rawProductId } = req.params;
+
+    // Make sure the product ID is a valid MongoDB ObjectId.
+    if (
+      typeof rawProductId !== "string" ||
+      !/^[a-f\d]{24}$/i.test(rawProductId)
+    ) {
+      return res.status(400).json({
+        message: "Valid product ID is required",
+      });
+    }
+
+    const productId = rawProductId.toLowerCase();
 
     // Find the current user's cart.
     const cart = await Cart.findOne({

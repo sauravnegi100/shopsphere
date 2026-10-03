@@ -40,6 +40,13 @@ app.get("/", (req, res) => {
   res.send("ShopSphere API is running");
 });
 
+// Handle routes that do not exist.
+app.use((req, res) => {
+  return res.status(404).json({
+    message: "API route not found",
+  });
+});
+
 // Handle errors from routes and controllers.
 app.use(errorMiddleware);
 
