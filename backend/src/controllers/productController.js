@@ -1,9 +1,9 @@
 import Product from "../models/Product.js";
 import Category from "../models/Category.js";
 import uploadToCloudinary from "../utils/cloudinaryUpload.js";
+import { deleteFromCloudinary } from "../utils/cloudinaryDelete.js";
 
 // Create a new product.
-
 const createProduct = async (req, res, next) => {
   try {
     const { name, description, price, category, stock } = req.body;
@@ -188,48 +188,79 @@ const getProductById = async (req, res, next) => {
 
 // Update an existing product by its ID.
 const updateProduct = async (req, res, next) => {
+  // Keep track of successfully uploaded images for cleanup if needed.
+  const uploadedImages = [];
+
   try {
-    // Get the product ID from the URL parameter.
     const { id } = req.params;
 
-    // Get the updated product data sent by the client.
-    const { name, description, price, category, images, stock } = req.body;
+    // Find the existing product first.
+    const product = await Product.findById(id);
 
-    // Check whether the selected category exists and is active.
-    const categoryExists = await Category.findOne({
-      _id: category,
-      isActive: true,
-    });
-
-    // Stop the request if the category does not exist or is inactive.
-    if (!categoryExists) {
+    if (!product) {
       return res.status(404).json({
-        message: "Category not found or inactive",
+        message: "Product not found",
       });
     }
 
-    // Find the product by ID and update the provided fields.
-    // Flow: Product.findByIdAndUpdate(id, updateData, options)
-    const updatedProduct = await Product.findByIdAndUpdate(
-      id,
-      {
-        name,
-        description,
-        price,
-        category,
-        images,
-        stock,
-      },
-      {
-        new: true, // Return the updated document after the update.
-        runValidators: true, // Ensure that Mongoose schema validations run during the update.
-      },
-    );
+    // Keep the old image URLs before replacing them.
+    const previousImages = [...product.images];
 
-    // Stop the request if no product exists with the provided ID.
-    if (!updatedProduct) {
-      return res.status(404).json({
-        message: "Product not found",
+    // Prepare only the fields sent in the request.
+    const updateData = {};
+
+    const allowedFields = ["name", "description", "price", "category", "stock"];
+
+    allowedFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        updateData[field] = req.body[field];
+      }
+    });
+
+    // Validate category only if a new category was provided.
+    if (updateData.category) {
+      const categoryExists = await Category.findOne({
+        _id: updateData.category,
+        isActive: true,
+      });
+
+      if (!categoryExists) {
+        return res.status(404).json({
+          message: "Category not found or inactive",
+        });
+      }
+    }
+
+    // Upload new images one by one so successful uploads are tracked.
+    if (req.files?.length) {
+      for (const file of req.files) {
+        const uploadedImage = await uploadToCloudinary(file.buffer);
+        uploadedImages.push(uploadedImage);
+      }
+
+      // Replace old image URLs with the newly uploaded URLs.
+      updateData.images = uploadedImages.map((image) => image.secure_url);
+    }
+
+    // Apply the updates to the existing product.
+    Object.assign(product, updateData);
+
+    // Save the updated product in MongoDB.
+    const updatedProduct = await product.save();
+
+    // Delete old images only after the database save succeeds.
+    if (req.files?.length) {
+      const deletionResults = await Promise.allSettled(
+        previousImages.map((imageUrl) => deleteFromCloudinary(imageUrl)),
+      );
+
+      deletionResults.forEach((result) => {
+        if (result.status === "rejected") {
+          console.error(
+            "Failed to delete an old Cloudinary image:",
+            result.reason,
+          );
+        }
       });
     }
 
@@ -238,6 +269,22 @@ const updateProduct = async (req, res, next) => {
       product: updatedProduct,
     });
   } catch (error) {
+    // If updating fails, remove any new images already uploaded.
+    if (uploadedImages.length > 0) {
+      const cleanupResults = await Promise.allSettled(
+        uploadedImages.map((image) => deleteFromCloudinary(image.secure_url)),
+      );
+
+      cleanupResults.forEach((result) => {
+        if (result.status === "rejected") {
+          console.error(
+            "Failed to clean up a newly uploaded Cloudinary image:",
+            result.reason,
+          );
+        }
+      });
+    }
+
     next(error);
   }
 };

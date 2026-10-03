@@ -27,10 +27,22 @@ router.get("/:id", validateObjectId, getProductById);
 
 // Update a product by its ID.
 // Only authenticated admin users can update products.
-router.put("/:id", protect, admin, validateObjectId, updateProduct);
+router.put(
+  "/:id",
+  protect,
+  admin,
+  validateObjectId,
+  upload.array("images", 5),
+  updateProduct,
+);
 
 // Delete a product by its ID.
 // Only authenticated admin users can delete products.
 router.delete("/:id", protect, admin, validateObjectId, deleteProduct);
 
 export default router;
+
+// protect: check karega ki user logged in hai.
+// admin: check karega ki user admin hai.
+// validateObjectId: URL mein product ID valid hai ya nahi, check karega.
+// upload.array("images", 5): request se maximum 5 image files receive karega, jinka form-data key images hona chahiye.
