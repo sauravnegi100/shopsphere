@@ -4,8 +4,7 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Products from "./pages/Products";
-
-const Cart = () => <h1>Cart Page</h1>;
+import Cart from "./pages/Cart";
 
 function App() {
   return (

@@ -235,6 +235,8 @@ const updateCartItem = async (req, res, next) => {
     // Save the updated cart.
     const savedCart = await cart.save();
 
+    await savedCart.populate("items.product");
+
     return res.status(200).json({
       message: "Cart item updated successfully",
       cart: savedCart,
@@ -293,6 +295,8 @@ const removeCartItem = async (req, res, next) => {
 
     // Save the updated cart.
     const savedCart = await cart.save();
+
+    await savedCart.populate("items.product");
 
     return res.status(200).json({
       message: "Product removed from cart successfully",
