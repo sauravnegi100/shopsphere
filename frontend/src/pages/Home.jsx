@@ -14,7 +14,8 @@ import toast from "react-hot-toast";
 import { getProducts } from "../services/productService";
 import { getCategories } from "../services/categoryService";
 
-const heroImage = "/images/shopsphere-hero.png";
+// const heroImage = "/frontend/public/shopsphere-hero.png"
+const heroImage = "/shopsphere-hero.png";
 
 const reveal = {
   hidden: { opacity: 0, y: 35 },

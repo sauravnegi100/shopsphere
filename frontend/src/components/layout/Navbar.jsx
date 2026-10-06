@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  FiHeart,
   FiLogIn,
   FiLogOut,
   FiMenu,
@@ -92,6 +93,13 @@ function Navbar() {
           <NavLink to="/products" className={navLinkClass}>
             Products
           </NavLink>
+
+          {isAuthenticated && (
+            <NavLink to="/wishlist" className={navLinkClass}>
+              <FiHeart size={17} />
+              Wishlist
+            </NavLink>
+          )}
 
           <NavLink to="/cart" className={navLinkClass}>
             <FiShoppingBag size={17} />
@@ -226,6 +234,13 @@ function Navbar() {
                 <FiShoppingBag size={18} />
                 Products
               </NavLink>
+
+              {isAuthenticated && (
+                <NavLink to="/wishlist" className={mobileNavLinkClass}>
+                  <FiHeart size={18} />
+                  Wishlist
+                </NavLink>
+              )}
 
               <NavLink to="/cart" className={mobileNavLinkClass}>
                 <FiShoppingBag size={18} />

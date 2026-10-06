@@ -5,3 +5,9 @@ export const getProducts = async (params = {}) => {
   const response = await api.get("/products", { params });
   return response.data;
 };
+
+// Fetch a single product by its ID.
+export const getProductById = async (productId) => {
+  const response = await api.get(`/products/${productId}`);
+  return response.data.product;
+};
