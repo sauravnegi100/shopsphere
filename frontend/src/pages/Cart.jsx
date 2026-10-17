@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { setCart } from "../store/slices/cartSlice.js";
 import toast from "react-hot-toast";
 import {
   FiArrowRight,
@@ -19,7 +21,8 @@ import {
 } from "../services/cartService.js";
 
 function Cart() {
-  const [cart, setCart] = useState(null);
+  const dispatch = useDispatch();
+  const cart = useSelector((state) => state.cart.cart);
   const [loading, setLoading] = useState(true);
   const [updatingProductId, setUpdatingProductId] = useState(null);
   const [clearing, setClearing] = useState(false);
@@ -28,7 +31,7 @@ function Cart() {
     const fetchCart = async () => {
       try {
         const data = await getCart();
-        setCart(data.cart);
+        dispatch(setCart(data.cart));
       } catch (error) {
         toast.error(error.response?.data?.message || "Failed to load cart");
       } finally {
