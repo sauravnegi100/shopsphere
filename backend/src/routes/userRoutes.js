@@ -3,6 +3,7 @@ import {
   registerUser,
   loginUser,
   getProfile,
+  updateProfile,
   getAdminData,
 } from "../controllers/userController.js";
 import protect from "../middlewares/authMiddleware.js";
@@ -23,6 +24,9 @@ router.get("/profile", protect, getProfile);
 //     protect,         ← middleware
 //     getProfile       ← controller
 // );
+
+// Update the authenticated user's profile.
+router.patch("/profile", protect, updateProfile);
 
 // Allow access only to authenticated admin users.
 router.get("/admin", protect, admin, getAdminData);

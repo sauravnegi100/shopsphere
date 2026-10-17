@@ -26,8 +26,6 @@ function Wishlist() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      setProducts([]);
-      setLoading(false);
       return;
     }
 

@@ -129,9 +129,6 @@ function Cart() {
     return total + item.product.price * item.quantity;
   }, 0);
 
-  /*
-   * Empty cart
-   */
   if (items.length === 0) {
     return (
       <section className="min-h-[75vh] bg-background">
@@ -363,17 +360,16 @@ function Cart() {
               </div>
 
               {/* Checkout */}
-              <button
-                type="button"
-                disabled
-                className="mt-6 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-white opacity-50"
+              <Link
+                to="/checkout"
+                className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-semibold text-white transition-all hover:bg-primary-hover"
               >
                 Proceed to Checkout
                 <FiArrowRight size={17} />
-              </button>
+              </Link>
 
               <p className="mt-3 text-center text-[11px] text-muted">
-                Checkout will be available soon.
+                Secure checkout for your ShopSphere order.
               </p>
             </div>
 

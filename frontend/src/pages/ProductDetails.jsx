@@ -13,7 +13,6 @@ import {
 } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { setCart } from "../store/slices/cartSlice.js";
-
 import { getProductById } from "../services/productService.js";
 import { addToCart } from "../services/cartService.js";
 import {
@@ -32,85 +31,92 @@ const formatPrice = (price) =>
 function ProductDetails() {
   const dispatch = useDispatch();
   const { id } = useParams();
-
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   const [product, setProduct] = useState(null);
   const [selectedImage, setSelectedImage] = useState("");
   const [quantity, setQuantity] = useState(1);
-
   const [loading, setLoading] = useState(true);
   const [addingToCart, setAddingToCart] = useState(false);
-
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [updatingWishlist, setUpdatingWishlist] = useState(false);
 
-  /*
-   * Fetch product details.
-   */
+  // Fetch product details.
   useEffect(() => {
+    let isActive = true;
+
     const fetchProduct = async () => {
       try {
         setLoading(true);
 
         const data = await getProductById(id);
 
+        if (!isActive) return;
+
         setProduct(data);
         setSelectedImage(data?.images?.[0] || "");
       } catch (error) {
-        console.error("Failed to fetch product:", error);
+        if (!isActive) return;
 
+        console.error("Failed to fetch product:", error);
         toast.error(error.response?.data?.message || "Failed to load product");
       } finally {
-        setLoading(false);
+        if (isActive) {
+          setLoading(false);
+        }
       }
     };
 
     fetchProduct();
+
+    return () => {
+      isActive = false;
+    };
   }, [id]);
 
-  /*
-   * Check whether the current product is already in the user's wishlist.
-   */
+  // Check whether the current product is already in the user's wishlist.
   useEffect(() => {
     if (!isAuthenticated || !id) {
-      setIsWishlisted(false);
       return;
     }
+
+    let isActive = true;
 
     const fetchWishlist = async () => {
       try {
         const data = await getWishlist();
 
-        const wishlistProducts = data.wishlist?.products || [];
+        if (!isActive) return;
 
+        const wishlistProducts = data.wishlist?.products || [];
         const exists = wishlistProducts.some(
           (wishlistProduct) => wishlistProduct._id === id,
         );
 
         setIsWishlisted(exists);
       } catch (error) {
+        if (!isActive) return;
+
         console.error("Failed to fetch wishlist:", error);
       }
     };
 
     fetchWishlist();
+
+    return () => {
+      isActive = false;
+    };
   }, [id, isAuthenticated]);
 
-  /*
-   * Change product quantity.
-   */
+  // Change product quantity.
   const handleQuantityChange = (nextQuantity) => {
     if (!product) return;
 
     const safeQuantity = Math.min(Math.max(1, nextQuantity), product.stock);
-
     setQuantity(safeQuantity);
   };
 
-  /*
-   * Add product to cart.
-   */
+  // Add product to cart.
   const handleAddToCart = async () => {
     if (!product || product.stock <= 0) return;
 
@@ -137,9 +143,7 @@ function ProductDetails() {
     }
   };
 
-  /*
-   * Add or remove the product from the wishlist.
-   */
+  // Add or remove the product from the wishlist.
   const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
       toast.error("Please login to use wishlist");
@@ -174,9 +178,7 @@ function ProductDetails() {
     }
   };
 
-  /*
-   * Loading state.
-   */
+  // Loading state.
   if (loading) {
     return (
       <section className="min-h-screen bg-background">
@@ -208,9 +210,7 @@ function ProductDetails() {
     );
   }
 
-  /*
-   * Product not found.
-   */
+  // Product not found.
   if (!product) {
     return (
       <section className="min-h-[75vh] bg-background">
@@ -243,6 +243,7 @@ function ProductDetails() {
 
   const images = product.images?.length ? product.images : [];
   const isOutOfStock = product.stock <= 0;
+  const showWishlisted = isAuthenticated && isWishlisted;
 
   return (
     <section className="min-h-screen bg-background">
@@ -355,20 +356,20 @@ function ProductDetails() {
                 onClick={handleWishlistToggle}
                 disabled={updatingWishlist}
                 aria-label={
-                  isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                  showWishlisted ? "Remove from wishlist" : "Add to wishlist"
                 }
                 title={
-                  isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                  showWishlisted ? "Remove from wishlist" : "Add to wishlist"
                 }
                 className={`mt-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border transition-colors ${
-                  isWishlisted
+                  showWishlisted
                     ? "border-primary bg-primary/10 text-primary"
                     : "border-border bg-surface text-muted hover:border-primary hover:text-primary"
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
                 <FiHeart
                   size={20}
-                  className={isWishlisted ? "fill-current" : ""}
+                  className={showWishlisted ? "fill-current" : ""}
                 />
               </motion.button>
             </div>
@@ -496,7 +497,6 @@ function ProductDetails() {
                     className="flex h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <FiShoppingBag size={17} />
-
                     {addingToCart ? "Adding to cart..." : "Add to Cart"}
                   </motion.button>
                 </div>

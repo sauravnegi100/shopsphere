@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import toast from "react-hot-toast";
@@ -48,16 +48,7 @@ function AuthPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const [registeredMessage, setRegisteredMessage] = useState(
-    location.state?.registeredMessage || "",
-  );
-
-  useEffect(() => {
-    if (location.state?.registeredMessage) {
-      setRegisteredMessage(location.state.registeredMessage);
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
+  const registeredMessage = location.state?.registeredMessage || "";
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -69,12 +60,10 @@ function AuthPage() {
   };
 
   const switchToRegister = () => {
-    setRegisteredMessage("");
     navigate("/register");
   };
 
   const switchToLogin = () => {
-    setRegisteredMessage("");
     navigate("/login");
   };
 

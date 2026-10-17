@@ -2,21 +2,26 @@ import bcrypt from "bcryptjs";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 
-// Handle the logic for registering a new user.
+// Register a new ShopSphere user.
 const registerUser = async (req, res) => {
   try {
-    // Get the user data sent by the client in the request body.
     const { name, email, password } = req.body || {};
 
-    // Check whether all required registration fields are provided.
     if (!name || !email || !password) {
       return res.status(400).json({
         message: "Name, email and password are required",
       });
     }
 
-    // Validate the password format before hashing it.
-    // Regex stands for Regular Expression. It is a pattern used to search, match, or validate text according to specific rules.
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedName || !normalizedEmail) {
+      return res.status(400).json({
+        message: "Name and email cannot be empty",
+      });
+    }
+
     const passwordRegex =
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
 
@@ -27,116 +32,184 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // Check whether a user with the same email already exists.
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({
+      email: normalizedEmail,
+    });
+
     if (existingUser) {
       return res.status(400).json({
         message: "User already exists",
       });
     }
 
-    // Hash the user's password before storing it in the database.
     const hashedPassword = await bcrypt.hash(password, 10);
-    // The second argument (10) is the salt rounds/cost factor.
-    // A higher number increases the computational work required to generate the hash.
 
     const user = new User({
-      name,
-      email,
+      name: normalizedName,
+      email: normalizedEmail,
       password: hashedPassword,
     });
-    // new User({...}) → Creates a new Mongoose User document using the structure and rules defined in the `User` model.
 
-    // Save the new User document to MongoDB.
     await user.save();
-    // Mongoose sends it to MongoDB → User stored in `users` collection.
 
-    // Send a success response after the user is successfully saved.
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
     });
   } catch (error) {
-    console.error("Registration error : ", error.message);
+    console.error("Registration error:", error.message);
+
     return res.status(500).json({
       message: "Server error",
     });
   }
 };
 
-// Handle the logic for Logging in a user.
+// Log in an existing ShopSphere user.
 const loginUser = async (req, res) => {
   try {
-    // Get the login credentials sent by the client.
     const { email, password } = req.body || {};
 
-    // Check whether both email and password are provided.
     if (!email || !password) {
       return res.status(400).json({
         message: "Email and password are required",
       });
     }
 
-    // Find the user associated with the provided email.
-    const user = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail });
 
-    // Stop the login process if no user exists with the provided email.
     if (!user) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // Compare the password provided by the user with the hashed password stored in the database.
     const isPasswordValid = await bcrypt.compare(password, user.password);
 
-    // Stop the login process if the provided password is incorrect.
     if (!isPasswordValid) {
       return res.status(401).json({
         message: "Invalid email or password",
       });
     }
 
-    // Stop the login process if the user's account is inactive.
     if (!user.isActive) {
       return res.status(403).json({
         message: "Account is inactive",
       });
     }
-    // Generate a JWT containing the user's ID. --> jwt.sign(payload, secret, options)
+
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    // Send a successful login response along with the JWT token.
     return res.status(200).json({
       message: "Login successful",
       token,
     });
   } catch (error) {
-    console.error("Login error : ", error.message);
+    console.error("Login error:", error.message);
+
     return res.status(500).json({
       message: "Server error",
     });
   }
 };
 
-// Return the profile of the currently authenticated user.
+// Get the authenticated user's profile.
 const getProfile = (req, res) => {
-  // Send the authenticated user's profile stored by the protect middleware.
   return res.status(200).json({
     user: req.user,
   });
 };
 
+// Update the authenticated user's name and email.
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body || {};
+
+    if (name === undefined && email === undefined) {
+      return res.status(400).json({
+        message: "Provide a name or email to update",
+      });
+    }
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || !name.trim()) {
+        return res.status(400).json({
+          message: "Name cannot be empty",
+        });
+      }
+
+      req.user.name = name.trim();
+    }
+
+    if (email !== undefined) {
+      if (typeof email !== "string" || !email.trim()) {
+        return res.status(400).json({
+          message: "Email cannot be empty",
+        });
+      }
+
+      const normalizedEmail = email.trim().toLowerCase();
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      if (!emailRegex.test(normalizedEmail)) {
+        return res.status(400).json({
+          message: "Please provide a valid email address",
+        });
+      }
+
+      const existingUser = await User.findOne({
+        email: normalizedEmail,
+        _id: { $ne: req.user._id },
+      });
+
+      if (existingUser) {
+        return res.status(409).json({
+          message: "This email is already in use",
+        });
+      }
+
+      req.user.email = normalizedEmail;
+    }
+
+    const updatedUser = await req.user.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user: {
+        _id: updatedUser._id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt,
+        updatedAt: updatedUser.updatedAt,
+      },
+    });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: "This email is already in use",
+      });
+    }
+
+    console.error("Profile update error:", error.message);
+
+    return res.status(500).json({
+      message: "Failed to update profile",
+    });
+  }
+};
+
 // Return a response for an authenticated admin user.
 const getAdminData = async (req, res) => {
-  // Send a response after the admin authorization check succeeds.
   return res.status(200).json({
     message: "Welcome Admin",
   });
 };
 
-export { registerUser, loginUser, getProfile, getAdminData };
+export { registerUser, loginUser, getProfile, updateProfile, getAdminData };
 
 // Error Handling in Registration :
 // 400 Bad Request → Used when the client sends invalid or incomplete data.

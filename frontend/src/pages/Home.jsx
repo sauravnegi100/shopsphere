@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
+import toast from "react-hot-toast";
 import {
   FiArrowRight,
   FiChevronLeft,
@@ -9,12 +10,10 @@ import {
   FiShield,
   FiShoppingBag,
 } from "react-icons/fi";
-import toast from "react-hot-toast";
 
 import { getProducts } from "../services/productService";
 import { getCategories } from "../services/categoryService";
 
-// const heroImage = "/frontend/public/shopsphere-hero.png"
 const heroImage = "/shopsphere-hero.png";
 
 const reveal = {
@@ -157,14 +156,12 @@ function HeroCarousel({ products }) {
             }}
             className="absolute inset-0"
           >
-            {/* Hero image */}
             <img
               src={slide.image}
               alt=""
               className="absolute inset-0 h-full w-full object-cover"
             />
 
-            {/* Text readability overlay */}
             <div
               className={`absolute inset-0 ${
                 slide.light
@@ -173,7 +170,6 @@ function HeroCarousel({ products }) {
               }`}
             />
 
-            {/* Content */}
             <div
               className={`relative flex h-full items-center px-10 sm:px-14 lg:px-16 ${
                 slide.light ? "text-[#111827]" : "text-white"
@@ -237,7 +233,6 @@ function HeroCarousel({ products }) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Previous */}
         <button
           type="button"
           onClick={previous}
@@ -247,7 +242,6 @@ function HeroCarousel({ products }) {
           <FiChevronLeft size={18} />
         </button>
 
-        {/* Next */}
         <button
           type="button"
           onClick={next}
@@ -257,7 +251,6 @@ function HeroCarousel({ products }) {
           <FiChevronRight size={18} />
         </button>
 
-        {/* Dots */}
         <div className="absolute bottom-5 left-10 z-20 flex items-center gap-2 sm:left-14 lg:left-16">
           {slides.map((item, index) => (
             <button
@@ -352,7 +345,7 @@ function Home() {
             viewport={{ once: true, amount: 0.1 }}
             className="grid grid-cols-3 gap-4 sm:grid-cols-4 lg:grid-cols-6"
           >
-            {categories.slice(0, 12).map((category, index) => (
+            {categories.slice(0, 12).map((category) => (
               <motion.div
                 key={category._id}
                 variants={reveal}
@@ -419,40 +412,46 @@ function Home() {
                   whileHover={{ y: -5 }}
                   className="group overflow-hidden rounded-xl border border-border bg-background transition-shadow hover:shadow-lg"
                 >
-                  <div className="relative aspect-square overflow-hidden bg-surface-muted">
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-muted">
-                        <FiPackage size={30} />
-                      </div>
-                    )}
+                  <Link
+                    to={`/products/${product._id}`}
+                    className="block h-full"
+                    aria-label={`View ${product.name}`}
+                  >
+                    <div className="relative aspect-square overflow-hidden bg-surface-muted">
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-muted">
+                          <FiPackage size={30} />
+                        </div>
+                      )}
 
-                    {product.stock === 0 && (
-                      <span className="absolute left-2 top-2 rounded-md bg-foreground px-2 py-1 text-xs text-background">
-                        Out of stock
-                      </span>
-                    )}
-                  </div>
+                      {product.stock === 0 && (
+                        <span className="absolute left-2 top-2 rounded-md bg-foreground px-2 py-1 text-xs text-background">
+                          Out of stock
+                        </span>
+                      )}
+                    </div>
 
-                  <div className="p-3 sm:p-4">
-                    <p className="text-xs text-muted">
-                      {product.category?.name || "Product"}
-                    </p>
+                    <div className="p-3 sm:p-4">
+                      <p className="text-xs text-muted">
+                        {product.category?.name || "Product"}
+                      </p>
 
-                    <h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-semibold text-foreground">
-                      {product.name}
-                    </h3>
+                      <h3 className="mt-1 line-clamp-2 min-h-10 text-sm font-semibold text-foreground">
+                        {product.name}
+                      </h3>
 
-                    <p className="mt-3 text-base font-bold text-primary">
-                      {formatPrice(product.price)}
-                    </p>
-                  </div>
+                      <p className="mt-3 text-base font-bold text-primary">
+                        {formatPrice(product.price)}
+                      </p>
+                    </div>
+                  </Link>
                 </motion.article>
               ))}
             </motion.div>

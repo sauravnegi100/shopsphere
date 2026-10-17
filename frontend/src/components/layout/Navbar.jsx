@@ -8,6 +8,7 @@ import {
   FiMoon,
   FiShoppingBag,
   FiSun,
+  FiUser,
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
@@ -97,6 +98,13 @@ function Navbar() {
             <NavLink to="/wishlist" className={navLinkClass}>
               <FiHeart size={17} />
               Wishlist
+            </NavLink>
+          )}
+
+          {isAuthenticated && (
+            <NavLink to="/profile" className={navLinkClass}>
+              <FiUser size={17} />
+              My Account
             </NavLink>
           )}
 
@@ -231,24 +239,52 @@ function Navbar() {
               transition={{ duration: 0.2 }}
               className="mx-auto max-w-7xl space-y-2 px-4 py-4 sm:px-6"
             >
-              <NavLink to="/" end className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+              <NavLink
+                to="/"
+                end
+                className={mobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 <FiShoppingBag size={18} />
                 Home
               </NavLink>
 
-              <NavLink to="/products" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+              <NavLink
+                to="/products"
+                className={mobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 <FiShoppingBag size={18} />
                 Products
               </NavLink>
 
               {isAuthenticated && (
-                <NavLink to="/wishlist" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                <NavLink
+                  to="/wishlist"
+                  className={mobileNavLinkClass}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
                   <FiHeart size={18} />
                   Wishlist
                 </NavLink>
               )}
 
-              <NavLink to="/cart" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+              {isAuthenticated && (
+                <NavLink
+                  to="/profile"
+                  className={mobileNavLinkClass}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <FiUser size={18} />
+                  My Account
+                </NavLink>
+              )}
+
+              <NavLink
+                to="/cart"
+                className={mobileNavLinkClass}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
                 <span className="relative">
                   <FiShoppingBag size={18} />
                   {cartCount > 0 && (
@@ -264,7 +300,11 @@ function Navbar() {
 
               {!isAuthenticated ? (
                 <>
-                  <NavLink to="/login" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                  <NavLink
+                    to="/login"
+                    className={mobileNavLinkClass}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
                     <FiLogIn size={18} />
                     Login
                   </NavLink>
