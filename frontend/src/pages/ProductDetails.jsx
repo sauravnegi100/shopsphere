@@ -11,7 +11,8 @@ import {
   FiShoppingBag,
   FiStar,
 } from "react-icons/fi";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { setCart } from "../store/slices/cartSlice.js";
 
 import { getProductById } from "../services/productService.js";
 import { addToCart } from "../services/cartService.js";
@@ -29,6 +30,7 @@ const formatPrice = (price) =>
   }).format(price);
 
 function ProductDetails() {
+  const dispatch = useDispatch();
   const { id } = useParams();
 
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
@@ -115,7 +117,8 @@ function ProductDetails() {
     try {
       setAddingToCart(true);
 
-      await addToCart(product._id, quantity);
+      const data = await addToCart(product._id, quantity);
+      dispatch(setCart(data.cart));
 
       toast.success(
         quantity === 1 ? "Added to cart" : `${quantity} items added to cart`,
