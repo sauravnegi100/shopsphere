@@ -11,7 +11,7 @@ import {
   FiUserPlus,
   FiX,
 } from "react-icons/fi";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/slices/authSlice.js";
 import { clearCartState } from "../../store/slices/cartSlice.js";
@@ -19,7 +19,6 @@ import { clearCartState } from "../../store/slices/cartSlice.js";
 function Navbar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const cartItems = useSelector((state) => state.cart.cart?.items || []);
