@@ -108,6 +108,9 @@ const addToCart = async (req, res, next) => {
     // Save the cart to MongoDB.
     const savedCart = await cart.save();
 
+    // Populate product details so the frontend receives a consistent cart shape.
+    await savedCart.populate("items.product");
+
     // Return the updated cart.
     return res.status(200).json({
       message: "Product added to cart successfully",
