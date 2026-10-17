@@ -14,6 +14,7 @@ import {
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "../../store/slices/authSlice.js";
+import { clearCartState } from "../../store/slices/cartSlice.js";
 
 function Navbar() {
   const dispatch = useDispatch();
@@ -21,6 +22,8 @@ function Navbar() {
   const location = useLocation();
 
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const cartItems = useSelector((state) => state.cart.cart?.items || []);
+  const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
   const [theme, setTheme] = useState(
     () => localStorage.getItem("theme") || "light",
@@ -33,16 +36,13 @@ function Navbar() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-
   const toggleTheme = () => {
     setTheme((currentTheme) => (currentTheme === "light" ? "dark" : "light"));
   };
 
   const handleLogout = () => {
     dispatch(logout());
+    dispatch(clearCartState());
     setIsMobileMenuOpen(false);
     navigate("/");
   };
@@ -102,7 +102,14 @@ function Navbar() {
           )}
 
           <NavLink to="/cart" className={navLinkClass}>
-            <FiShoppingBag size={17} />
+            <span className="relative">
+              <FiShoppingBag size={17} />
+              {cartCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </span>
             Cart
           </NavLink>
         </div>
@@ -225,25 +232,32 @@ function Navbar() {
               transition={{ duration: 0.2 }}
               className="mx-auto max-w-7xl space-y-2 px-4 py-4 sm:px-6"
             >
-              <NavLink to="/" end className={mobileNavLinkClass}>
+              <NavLink to="/" end className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                 <FiShoppingBag size={18} />
                 Home
               </NavLink>
 
-              <NavLink to="/products" className={mobileNavLinkClass}>
+              <NavLink to="/products" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                 <FiShoppingBag size={18} />
                 Products
               </NavLink>
 
               {isAuthenticated && (
-                <NavLink to="/wishlist" className={mobileNavLinkClass}>
+                <NavLink to="/wishlist" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                   <FiHeart size={18} />
                   Wishlist
                 </NavLink>
               )}
 
-              <NavLink to="/cart" className={mobileNavLinkClass}>
-                <FiShoppingBag size={18} />
+              <NavLink to="/cart" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
+                <span className="relative">
+                  <FiShoppingBag size={18} />
+                  {cartCount > 0 && (
+                    <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-white">
+                      {cartCount > 99 ? "99+" : cartCount}
+                    </span>
+                  )}
+                </span>
                 Cart
               </NavLink>
 
@@ -251,13 +265,14 @@ function Navbar() {
 
               {!isAuthenticated ? (
                 <>
-                  <NavLink to="/login" className={mobileNavLinkClass}>
+                  <NavLink to="/login" className={mobileNavLinkClass} onClick={() => setIsMobileMenuOpen(false)}>
                     <FiLogIn size={18} />
                     Login
                   </NavLink>
 
                   <NavLink
                     to="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
                     className="flex items-center gap-3 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
                   >
                     <FiUserPlus size={18} />
