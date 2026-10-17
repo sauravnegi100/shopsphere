@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { setCart } from "../store/slices/cartSlice.js";
 import toast from "react-hot-toast";
 import {
   FiChevronLeft,
@@ -16,6 +18,7 @@ import { getCategories } from "../services/categoryService.js";
 import { addToCart } from "../services/cartService.js";
 
 function Products() {
+  const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [products, setProducts] = useState([]);
@@ -265,7 +268,8 @@ function Products() {
     try {
       setAddingProductId(product._id);
 
-      await addToCart(product._id, 1);
+      const data = await addToCart(product._id, 1);
+      dispatch(setCart(data.cart));
 
       toast.success("Added to cart");
     } catch (error) {
