@@ -40,7 +40,7 @@ function Cart() {
     };
 
     fetchCart();
-  }, []);
+  }, [dispatch]);
 
   const formatPrice = (price) =>
     new Intl.NumberFormat("en-IN", {
@@ -57,7 +57,7 @@ function Cart() {
 
       const data = await updateCartItem(productId, quantity);
 
-      setCart(data.cart);
+      dispatch(setCart(data.cart));
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to update cart");
     } finally {
@@ -71,7 +71,7 @@ function Cart() {
 
       const data = await removeCartItem(productId);
 
-      setCart(data.cart);
+      dispatch(setCart(data.cart));
 
       toast.success("Item removed from cart");
     } catch (error) {
@@ -87,7 +87,7 @@ function Cart() {
 
       const data = await clearCart();
 
-      setCart(data.cart);
+      dispatch(setCart(data.cart));
 
       toast.success("Cart cleared");
     } catch (error) {
