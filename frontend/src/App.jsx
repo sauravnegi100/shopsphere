@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import AdminRoute from "./components/auth/AdminRoute";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -13,6 +14,7 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import Profile from "./pages/Profile.jsx";
+import AdminOrders from "./pages/AdminOrders.jsx";
 
 function App() {
   return (
@@ -34,6 +36,10 @@ function App() {
             <Route path="/orders" element={<Orders />} />
             <Route path="/orders/:id" element={<Orders />} />
             <Route path="/profile" element={<Profile />} />
+            {/* Admin routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/orders" element={<AdminOrders />} />
+            </Route>
           </Route>
         </Route>
       </Routes>
